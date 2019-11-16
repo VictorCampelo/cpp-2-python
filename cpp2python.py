@@ -45,6 +45,16 @@ def is_source(filename):
     return False
 
 def process_line(line):
+    """ remove pointer
+
+        double *d
+          V
+        d
+    """
+    regex = r"(double|int|char|float)\s+\*\s?(\w+)\b"
+    subst = "\\2"
+    # You can manually specify the number of replacements by changing the 4th argument
+    line = re.sub(regex, subst, line)
 
     """ remove semicolons
 
@@ -278,6 +288,58 @@ def process_line(line):
                 '\s*([^,]+)\s*,\s*' + \
                 'S[A-Z]+\s*\(\s*([\w\d]+)[^\)]+\)\s*\)\s*\)',
               '\\1.\\2.connect(\\3.\\4)', line)
+    
+    """ alter for statement
+    for(j = 1; j < c - 1; j+=1)
+                v
+    for j in range(1,c-1,1):
+        
+    """
+    regex = r"for\s?\(\s?(\s?(\w+)\b\s?=\s?(\d+|\w+)\b\s?)?;\s?((\w+)\s?(>|>=|<|<=|==|!=)?\s?((\w+|\d+)?\s?(\-|\+|\*|\/)?\s?(\w+|\d+)?))?\s?;\s?(\w+\s?(\+\+|\-\-|\+|\-)(\d+)?(\w+)?)?\s?\)"
+    subst = "for \\2 in range(\\3, \\7):"
+    line = re.sub(regex, subst, line)
+
+    """ remove type
+
+        int|float|double|char i;
+                V
+        i
+    """
+    line = re.sub('(int|double|float|char) ', '', line) # 
+    """ remove ++
+
+        i++
+                V
+        i+=1
+    """
+    line = re.sub('\+\+', '+=1', line) # 
+
+    """ remove --
+
+        i--
+                V
+        i-=1
+    """
+    line = re.sub('--', '-=1', line) # 
+
+    line = re.sub(';', '', line) # 
+
+    line = re.sub('printf', 'print', line)
+
+    regex = r"print\((\"[:;\!\+\-\*\\a-zA-Z0-9_ ,\[\]\.\%\=]+\s?\"),\s?([\(\)\+\-\*\\a-zA-Z0-9_ ,\[\]\.\%]+)*\)"
+
+    subst = "print(\\1, %(\\2))"
+
+    # You can manually specify the number of replacements by changing the 4th argument
+    line = re.sub(regex, subst, line, 0, re.VERBOSE)
+
+    line = re.sub('getch\(\)', '', line)
+
+    #remove all param a[], a[][] -> a
+    for x in range(1,256, 1):
+        regex = r"def\s([0-9\[\]]+)*([a-zA-Z_ \(\)\,]+)([0-9\[\]]+)*"
+        subst = "def \\2"
+        line = re.sub(regex, subst, line, 0, re.MULTILINE)
 
     return line
 
