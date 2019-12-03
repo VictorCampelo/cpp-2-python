@@ -45,6 +45,13 @@ def is_source(filename):
     return False
 
 def process_line(line):
+    #DO WHILE
+    # regex = r"\s(do)\s*\{((\w|\W)*)\}\s*(while)?\(([a-zA-Z0-9\!\=\& ]+)\);"
+
+    # subst = "\\2\\4(\\5):\\n\\2"
+
+    # line = re.sub(regex, subst, line, 0, re.VERBOSE | re.MULTILINE)
+    
     """ remove pointer
 
         double *d
@@ -289,6 +296,7 @@ def process_line(line):
                 'S[A-Z]+\s*\(\s*([\w\d]+)[^\)]+\)\s*\)\s*\)',
               '\\1.\\2.connect(\\3.\\4)', line)
     
+
     """ alter for statement
     for(j = 1; j < c - 1; j+=1)
                 v
@@ -324,9 +332,11 @@ def process_line(line):
 
     line = re.sub(';', '', line) # 
 
+    # ALTER % IN PRINT TO STR() FUNCTION
+
     line = re.sub('printf', 'print', line)
 
-    regex = r"print\((\"[:;\!\+\-\*\\a-zA-Z0-9_ ,\[\]\.\%\=]+\s?\"),\s?([\(\)\+\-\*\\a-zA-Z0-9_ ,\[\]\.\%]+)*\)"
+    regex = r"print\((\"[\!\+\-\*\\a-zA-Z0-9_ ,\[\]\.\%\:]+\s?\")\,?\s?([\+\-\*\\a-zA-Z0-9_ ,\[\]\.\%\(\)]+)*\)"
 
     subst = "print(\\1, %(\\2))"
 
@@ -336,10 +346,41 @@ def process_line(line):
     line = re.sub('getch\(\)', '', line)
 
     #remove all param a[], a[][] -> a
-    for x in range(1,256, 1):
+    for x in range(1,10, 1):
         regex = r"def\s([0-9\[\]]+)*([a-zA-Z_ \(\)\,]+)([0-9\[\]]+)*"
         subst = "def \\2"
         line = re.sub(regex, subst, line, 0, re.MULTILINE)
+
+    #SCANF 
+    regex = r"scanf\(\"%\w+\"\,\s?\&?\s?([a-zA-Z\[\]_]+)\)"
+
+    subst = "\\1 = input()"
+
+    line = re.sub(regex, subst, line, 0, re.VERBOSE) 
+    
+    #CALLOC
+    regex = r"(\w+)\s*\=\s*\((\W*|\w*)*calloc\(([a-zA-Z0-9\-\+\*\ (\)\[\]]*)\,\s(\w)*\(\w*\)\)"
+
+    subst = "\\1 = []"
+
+    line = re.sub(regex, subst, line, 0, re.VERBOSE) 
+
+    #FILL ARRAY
+    regex = r"""
+    ([a-zA-Z0-9_]+)\s*\[([a-zA-Z0-9_]+)\s*((\+=)|(\-=)|(\+\+))\s*([0-9]*)\]\s*\=*\s*
+    """
+
+    subst = "\\2\\3\\7\n\\1[\\2] = "
+    
+    line = re.sub(regex, subst, line, 0, re.VERBOSE | re.MULTILINE)
+
+    regex = r",\s*%\(\)"
+
+    subst = ""
+
+    line = re.sub(regex, subst, line, 0, re.VERBOSE | re.MULTILINE)
+
+    #NEEDS range(0,(term)) -> range(0, (term)-1)
 
     return line
 
